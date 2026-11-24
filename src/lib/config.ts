@@ -1,13 +1,27 @@
 /** Configuratie uitsluitend via omgevingsvariabelen. Geen geheimen in code of frontend. */
 const env = process.env;
 
+/**
+ * De app verbindt als beperkte rol pickmyride_app (RLS van kracht), nooit als database-eigenaar.
+ * Op Vercel/Neon: DATABASE_URL is de eigenaar-URL van de koppeling; met APP_DB_PASSWORD maken we daar de app-URL van.
+ */
+function appDatabaseUrl() {
+  if (env.APP_DATABASE_URL) return env.APP_DATABASE_URL;
+  if (env.DATABASE_URL && env.APP_DB_PASSWORD) {
+    const u = new URL(env.DATABASE_URL);
+    u.username = 'pickmyride_app'; u.password = env.APP_DB_PASSWORD;
+    return u.toString();
+  }
+  return env.DATABASE_URL || 'postgres://pickmyride_app@127.0.0.1:5433/pickmyride';
+}
+
 export type AppEnv = 'development' | 'test' | 'production';
 
 export const config = {
   appEnv: (env.APP_ENV || 'development') as AppEnv,
   port: Number(env.PORT || 3000),
   baseUrl: env.BASE_URL || `http://localhost:${env.PORT || 3000}`,
-  databaseUrl: env.DATABASE_URL || 'postgres://pickmyride_app@127.0.0.1:5433/pickmyride',
+  databaseUrl: appDatabaseUrl(),
   sessionSecret: env.SESSION_SECRET || '',
   // Demo-omgeving: toont demo-betaalomgeving en ontwikkel-mailbox. Nooit in productie.
   demoMode: env.DEMO_MODE === 'true',

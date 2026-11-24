@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "description": "PickMyRide — platform voor vooraf geboekte taxiritten met gesloten biedingen",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "db:local": "bash scripts/local-db.sh",
     "db:migrate": "tsx scripts/migrate.ts",
@@ -13,7 +15,8 @@
     "dev": "tsx watch src/server.ts",
     "start": "tsx src/server.ts",
     "test": "node --import tsx --test --test-concurrency=1 tests/*.test.ts",
-    "screenshots": "tsx scripts/screenshots.ts"
+    "screenshots": "tsx scripts/screenshots.ts",
+    "vercel-build": "tsx scripts/vercel-build.ts"
   },
   "dependencies": {
     "react": "^19.2.0",
@@ -25,6 +28,7 @@
   },
   "devDependencies": {
     "typescript": "^5.6.0",
-    "playwright": "^1.50.0"
+    "playwright": "^1.50.0",
+    "esbuild": "^0.25.0"
   }
 }

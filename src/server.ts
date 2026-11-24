@@ -446,7 +446,7 @@ function uuid(v: string | undefined, msg = 'Ongeldige verwijzing.') {
 }
 
 // ───────── Verwerking per verzoek ─────────
-async function handle(req: http.IncomingMessage, res: http.ServerResponse) {
+export async function handle(req: http.IncomingMessage, res: http.ServerResponse) {
   const url = new URL(req.url || '/', 'http://localhost');
   const ip = (process.env.TRUST_PROXY === 'true' ? String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() : '') || req.socket.remoteAddress || '?';
   const setCookies: string[] = [];
@@ -516,13 +516,15 @@ async function handle(req: http.IncomingMessage, res: http.ServerResponse) {
 
 export function createServer() { return http.createServer((req, res) => { handle(req, res).catch(e => { console.error(e); try { res.writeHead(500); res.end(); } catch { /* */ } }); }); }
 
+/** Achtergrondwerk: verlopen biedingen afsluiten en wachtende berichten verwerken. */
+export async function backgroundTick() { try { await K.sweepExpired(); await deliverPending(); } catch (e) { await logError('Achtergrondtaak mislukt', { error: (e as Error).message }); } }
+
 export async function startServer() {
   assertConfig();
   const server = createServer();
   await new Promise<void>(res => server.listen(config.port, res));
   logInfo('PickMyRide gestart', { port: config.port, env: config.appEnv, demo: config.demoMode, payments: config.paymentProvider, geo: config.geoProvider, mail: config.mailMode });
-  const tick = async () => { try { await K.sweepExpired(); await deliverPending(); } catch (e) { await logError('Achtergrondtaak mislukt', { error: (e as Error).message }); } };
-  setInterval(tick, 30_000).unref(); tick();
+  setInterval(backgroundTick, 30_000).unref(); backgroundTick();
   return server;
 }
 
