@@ -45,7 +45,7 @@ await build({
   external: ['pg-native', ...(process.env.PMR_LOCAL_BUILD ? ['pg'] : [])], logLevel: 'warning',
   banner: { js: "import { createRequire as __cr } from 'node:module'; const require = __cr(import.meta.url);" },
 });
-fs.writeFileSync(path.join(fn, '.vc-config.json'), JSON.stringify({ runtime: 'nodejs22.x', handler: 'index.mjs', launcherType: 'Nodejs', shouldAddHelpers: false, maxDuration: 30 }, null, 2));
+fs.writeFileSync(path.join(fn, '.vc-config.json'), JSON.stringify({ runtime: 'nodejs22.x', handler: 'index.mjs', launcherType: 'Nodejs', shouldAddHelpers: false, maxDuration: 30, regions: ['fra1'] }, null, 2));
 fs.cpSync(path.join(root, 'public'), path.join(out, 'static/static'), { recursive: true });
 fs.writeFileSync(path.join(out, 'config.json'), JSON.stringify({
   version: 3,
