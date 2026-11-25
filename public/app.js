@@ -526,3 +526,13 @@
     });
   }
 })();
+
+// Portaaltabellen: kolomnamen als label per cel, zodat rijen op mobiel als kaarten leesbaar zijn.
+document.querySelectorAll('.area-company main .table-wrap table, .area-admin main .table-wrap table').forEach(function (t) {
+  var heads = Array.prototype.map.call(t.querySelectorAll('thead th'), function (th) { return th.textContent.trim(); });
+  if (!heads.length) return;
+  t.classList.add('stack');
+  t.querySelectorAll('tbody tr').forEach(function (tr) {
+    Array.prototype.forEach.call(tr.children, function (td, i) { if (heads[i] && !td.hasAttribute('data-label')) td.setAttribute('data-label', heads[i]); });
+  });
+});

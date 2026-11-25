@@ -128,17 +128,40 @@ export function CompanySignupPage({ ctx, errors = {}, values, areas, categories,
 export function CompanyDashboardPage({ ctx, available, bids, bookings, unread = {} }: { ctx: Ctx; available: number; bids: any[]; bookings: any[]; unread?: Record<string, number> }) {
   const activeBids = bids.filter(b => b.status === 'actief').length;
   const upcoming = bookings.filter(b => !['afgerond', 'geannuleerd'].includes(b.status));
+  const noDriver = upcoming.filter(b => b.status === 'bevestigd').length;
+  const unreadTotal = Object.values(unread).reduce((x, y) => x + y, 0);
+  const kpis: [string, number, string, string, boolean][] = [
+    ['/bedrijf/aanvragen', available, 'Open aanvragen', 'Bekijk en bied', false],
+    ['/bedrijf/biedingen', activeBids, 'Lopende biedingen', 'Wacht op keuze klant', false],
+    ['/bedrijf/ritten', upcoming.length, 'Komende ritten', 'Bekijk de planning', false],
+    ['/bedrijf/ritten', noDriver, 'Zonder chauffeur', noDriver ? 'Wijs nu een chauffeur toe' : 'Alles toegewezen', noDriver > 0],
+  ];
   return (
-    <Page ctx={ctx} title="Dashboard" area="company">
-      <h1>{ctx.user?.company_name}</h1>
-      <div className="kpis">
-        <a className="kpi" href="/bedrijf/aanvragen"><strong>{available}</strong><span>Beschikbare aanvragen</span></a>
-        <a className="kpi" href="/bedrijf/biedingen"><strong>{activeBids}</strong><span>Actieve biedingen</span></a>
-        <a className="kpi" href="/bedrijf/ritten"><strong>{upcoming.length}</strong><span>Komende ritten</span></a>
-        <a className="kpi attention" href="/bedrijf/ritten"><strong>{upcoming.filter(b => b.status === 'bevestigd').length}</strong><span>Nog geen chauffeur toegewezen</span></a>
+    <Page ctx={ctx} title="Overzicht" area="company">
+      <div className="pd-head">
+        <div><p className="fg-eyebrow">Overzicht</p><h1>Welkom terug.</h1>
+          <p className="pd-lead">{available ? `Er ${available === 1 ? 'staat 1 aanvraag' : `staan ${available} aanvragen`} klaar in jouw werkgebied.` : 'Er staan nu geen nieuwe aanvragen in jouw werkgebied.'}{unreadTotal ? ` Je hebt ${unreadTotal} ongelezen ${unreadTotal === 1 ? 'bericht' : 'berichten'}.` : ''}</p></div>
+        <a className="btn btn-primary" href="/bedrijf/aanvragen">Bekijk aanvragen</a>
       </div>
-      <h2 style={{ marginTop: '2rem' }}>Eerstvolgende ritten</h2>
-      <BookingTable rows={upcoming.slice(0, 5)} unread={unread} />
+      <div className="kpis pd-kpis">{kpis.map(([h, n, t, sub, warn]) =>
+        <a key={t} className={'kpi' + (warn ? ' attention' : '')} href={h}><strong>{n}</strong><span>{t}</span><em>{sub} →</em></a>)}</div>
+      <div className="pd-grid">
+        <section className="pd-panel" aria-labelledby="pd-ritten">
+          <div className="pd-panel-head"><h2 id="pd-ritten">Eerstvolgende ritten</h2><a href="/bedrijf/ritten">Alle ritten</a></div>
+          {upcoming.length ? <BookingTable rows={upcoming.slice(0, 5)} unread={unread} /> : <p className="muted">Nog geen geboekte ritten. Zodra een klant jouw voorstel kiest, staat de rit hier.</p>}
+        </section>
+        <aside className="pd-side">
+          <div className="pd-tip"><h3>Zo werkt bieden</h3><ol>
+            <li>Kies een open aanvraag in jouw werkgebied.</li>
+            <li>Doe één totaalprijs, inclusief alle vaste kosten.</li>
+            <li>Kiest de klant jouw voorstel, dan krijg je naam en adres en plan je de rit.</li></ol></div>
+          <div className="pd-links"><h3>Snel naar</h3><ul>
+            <li><a href="/bedrijf/wagenpark">Chauffeur of voertuig toevoegen</a></li>
+            <li><a href="/bedrijf/profiel">Bedrijfsgegevens en documenten</a></li>
+            <li><a href="/bedrijf/meldingen">Meldingsinstellingen</a></li>
+            <li><a href="/bedrijf/ondersteuning">Ondersteuning</a></li></ul></div>
+        </aside>
+      </div>
     </Page>
   );
 }

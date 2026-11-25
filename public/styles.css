@@ -1404,3 +1404,100 @@ a.lp-card-action:hover { text-decoration: underline; }
   .lp-form-card { padding: 22px 18px; }
   .lp-aside { position: static; }
 }
+
+/* ═════════ Portalen (bedrijf, klant, beheer) in Figma-stijl ═════════ */
+.portal-bar { background: #285C45; color: #f7f4ed; }
+.portal-bar .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-top: 14px; padding-bottom: 14px; flex-wrap: wrap; }
+.portal-id { display: flex; flex-direction: column; line-height: 1.2; }
+.portal-id span { font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: #cfe0d4; }
+.portal-id strong { font-family: var(--serif); font-weight: 400; font-size: 22px; color: #f7f4ed; }
+.portal-status { font-size: 13px; font-weight: 600; padding: 6px 12px; border-radius: 999px; }
+.portal-status.is-ok { background: rgba(247,244,237,.14); color: #f7f4ed; }
+.portal-status.is-warn { background: #f3e2b5; color: #6b4a0e; }
+.subnav { background: #fff; border-bottom: 1px solid #e5e1d9; overflow: visible; }
+.subnav .wrap { display: block; }
+.subnav-tabs { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+.subnav-tabs a { white-space: nowrap; padding: 15px 14px; text-decoration: none; color: #756B61; font-weight: 500; font-size: 15px; border-bottom: 3px solid transparent; }
+.subnav-tabs a:hover { color: #33261F; }
+.subnav-tabs a[aria-current="page"] { color: #285C45; border-bottom-color: #285C45; font-weight: 600; }
+.subnav-mobile { display: none; position: relative; }
+.subnav-mobile summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; padding: 14px 0; font-weight: 600; color: #285C45; }
+.subnav-mobile summary::-webkit-details-marker { display: none; }
+.subnav-mobile summary::after { content: ""; width: 18px; height: 18px; background: url("/static/img/icons/chevron.svg") no-repeat center / contain; transition: transform .2s; }
+.subnav-mobile[open] summary::after { transform: rotate(180deg); }
+.subnav-mobile nav { display: flex; flex-direction: column; padding: 0 0 10px; border-top: 1px solid #ece7dd; }
+.subnav-mobile nav a { padding: 12px 4px; color: #33261F; text-decoration: none; border-bottom: 1px solid #f1ede6; }
+.subnav-mobile nav a[aria-current="page"] { color: #285C45; font-weight: 700; }
+@media (max-width: 899px) { .subnav-tabs { display: none; } .subnav-mobile { display: block; } .portal-id strong { font-size: 19px; } }
+
+.area-company main, .area-customer main, .area-admin main { background: #F7F4ED; }
+.area-company .page-body { padding-top: 40px; }
+.area-company h1 { font-family: var(--serif); font-weight: 400; color: #33261F; font-size: clamp(2rem, 3.4vw, 44px); }
+.area-company h2 { font-family: var(--serif); font-weight: 400; color: #33261F; }
+.area-company .card, .area-company .table-wrap { background: #fff; border: 1px solid #ece7dd; border-radius: 16px; }
+.area-company th { background: #eaede2; color: #4b5a4f; font-size: 13px; font-weight: 600; }
+.area-company td { border-bottom-color: #f0ece4; }
+.area-company tbody tr:hover td { background: #fbfaf6; }
+.area-company .btn-primary { background: #285C45; }
+.area-company .btn-primary:hover { background: #1f4a37; }
+.area-company .badge-ok { background: #e1e8dc; color: #285C45; }
+.area-company .muted { color: #756B61; }
+.area-company main a { color: #285C45; }
+.area-company main .btn-primary, .area-company main .btn-primary:hover { color: #fff; }
+.pd-panel td:first-child, .pd-panel td:first-child a { white-space: nowrap; }
+.pd-panel th, .pd-panel td { padding: 12px 10px; }
+
+.pd-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; flex-wrap: wrap; margin-bottom: 28px; }
+.pd-head h1 { margin: 0; }
+.pd-lead { color: #756B61; font-size: 17px; margin: 10px 0 0; max-width: 60ch; }
+.pd-head .btn { width: auto; }
+.pd-kpis { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+.area-company .kpi { background: #fff; border: 1px solid #ece7dd; border-radius: 16px; padding: 22px 22px 18px; display: flex; flex-direction: column; }
+.area-company .kpi strong { font-family: var(--serif); font-weight: 400; font-size: 44px; color: #33261F; margin-bottom: 4px; }
+.area-company .kpi span { color: #33261F; font-weight: 600; font-size: 15px; }
+.area-company .kpi em { font-style: normal; color: #285C45; font-size: 14px; font-weight: 600; margin-top: 12px; }
+.area-company .kpi:hover { border-color: #285C45; }
+.area-company .kpi.attention { border-color: #e7c977; box-shadow: none; background: #fffaf0; }
+.area-company .kpi.attention em { color: #8a5c08; }
+.pd-grid { display: grid; gap: 24px; margin-top: 32px; align-items: start; }
+@media (min-width: 1000px) { .pd-grid { grid-template-columns: 1fr 340px; } }
+.pd-panel { background: #fff; border: 1px solid #ece7dd; border-radius: 16px; padding: 24px; min-width: 0; }
+.pd-panel .table-wrap { border: 0; border-radius: 10px; }
+.pd-panel-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 14px; }
+.pd-panel-head h2 { margin: 0; font-size: 26px; }
+.pd-panel-head a { font-weight: 600; font-size: 15px; }
+.pd-side { display: grid; gap: 16px; }
+.pd-tip { background: #e1e8dc; border-radius: 16px; padding: 22px 24px; }
+.pd-tip h3, .pd-links h3 { font-family: var(--serif); font-weight: 400; font-size: 22px; color: #33261F; margin: 0 0 10px; }
+.pd-tip ol { margin: 0; padding-left: 20px; color: #3f4a42; font-size: 15px; display: grid; gap: 6px; }
+.pd-links { background: #fff; border: 1px solid #ece7dd; border-radius: 16px; padding: 22px 24px; }
+.pd-links ul { list-style: none; margin: 0; padding: 0; }
+.pd-links li { border-top: 1px solid #f0ece4; }
+.pd-links li:first-child { border-top: 0; }
+.pd-links a { display: block; padding: 10px 0; font-weight: 500; text-decoration: none; }
+.pd-links a:hover { text-decoration: underline; }
+@media (max-width: 640px) {
+  .pd-head .btn { width: 100%; }
+  .pd-kpis { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .area-company .kpi { padding: 16px; }
+  .area-company .kpi strong { font-size: 34px; }
+  .area-company .kpi em { display: none; }
+  .pd-panel { padding: 16px; }
+  .area-company .table-wrap table { font-size: 14px; }
+}
+
+/* Portaaltabellen als kaarten op mobiel */
+@media (max-width: 720px) {
+  .table-wrap:has(table.stack) { overflow: visible; background: transparent; border: 0; }
+  table.stack, table.stack tbody, table.stack tr, table.stack td { display: block; width: 100%; }
+  table.stack thead { display: none; }
+  table.stack tr { background: #fff; border: 1px solid #ece7dd; border-radius: 14px; padding: 6px 16px; margin-bottom: 12px; }
+  table.stack td { position: relative; min-height: 2.6em; padding: 10px 0 10px 7.5rem !important; border: 0; border-bottom: 1px solid #f0ebe2; white-space: normal !important; text-align: left; }
+  table.stack td:last-child { border-bottom: 0; }
+  table.stack td::before { content: attr(data-label); position: absolute; left: 0; top: 12px; width: 7rem; font-size: 13px; color: #756B61; font-weight: 600; }
+  table.stack td[data-label=""]::before, table.stack td:not([data-label])::before { content: none; }
+  table.stack td:not([data-label]), table.stack td[data-label=""] { padding-left: 0 !important; min-height: 0; }
+  table.stack td .btn { width: 100%; text-align: center; }
+  .pd-panel .table-wrap:has(table.stack) { margin: 0; }
+  .pd-panel table.stack tr { border-color: #e1e8dc; }
+}

@@ -10,9 +10,8 @@ type Area = 'public' | 'customer' | 'company' | 'admin';
 
 const SUBNAV: Record<Exclude<Area, 'public'>, [string, string][]> = {
   customer: [['/mijn', 'Mijn aanvragen'], ['/rit-aanvragen', 'Nieuwe rit aanvragen']],
-  company: [['/bedrijf', 'Dashboard'], ['/bedrijf/aanvragen', 'Beschikbare aanvragen'], ['/bedrijf/biedingen', 'Mijn biedingen'], ['/bedrijf/ritten', 'Gewonnen ritten & planning'],
-    ['/bedrijf/wagenpark', 'Chauffeurs en voertuigen'], ['/bedrijf/financieel', 'Financieel'], ['/bedrijf/beoordelingen', 'Beoordelingen'], ['/bedrijf/profiel', 'Bedrijfsprofiel & documenten'],
-    ['/bedrijf/meldingen', 'Meldingsinstellingen'], ['/bedrijf/ondersteuning', 'Ondersteuning']],
+  company: [['/bedrijf', 'Overzicht'], ['/bedrijf/aanvragen', 'Aanvragen'], ['/bedrijf/biedingen', 'Mijn biedingen'], ['/bedrijf/ritten', 'Ritten & planning'],
+    ['/bedrijf/wagenpark', 'Wagenpark'], ['/bedrijf/financieel', 'Financieel'], ['/bedrijf/beoordelingen', 'Beoordelingen'], ['/bedrijf/profiel', 'Profiel']],
   admin: [['/beheer', 'Dashboard'], ['/beheer/bedrijven', 'Taxibedrijven'], ['/beheer/aanvragen', 'Ritten & biedingen'], ['/beheer/vervangend-vervoer', 'Vervangend vervoer'], ['/beheer/beoordelingen', 'Beoordelingen'], ['/beheer/instellingen', 'Instellingen'],
     ['/beheer/audit', 'Auditlog'], ...(config.demoMode ? [['/ontwikkeling/mailbox', 'Mailbox (demo)'] as [string, string]] : [])],
 };
@@ -47,7 +46,7 @@ export function Page(props: { ctx: Ctx; title: string; description?: string; noi
         <link rel="apple-touch-icon" href="/static/img/pmr-icoon-180.png" />
         <script dangerouslySetInnerHTML={{ __html: "document.documentElement.classList.add('js')" }} />
       </head>
-      <body className={blauw ? 'theme-blauw' : undefined}>
+      <body className={[blauw ? 'theme-blauw' : '', `area-${area}`].filter(Boolean).join(' ')}>
         <a className="skip" href="#inhoud">Direct naar de inhoud</a>
         {config.demoMode && <div className="demo-banner" role="note"><strong>Demo-omgeving.</strong> Alle bedrijven, klanten en betalingen zijn fictief; er worden geen echte betalingen of berichten verwerkt.</div>}
         <header className={'site-header' + (u || area !== 'public' ? ' keep-menu' : '')}>
@@ -58,11 +57,25 @@ export function Page(props: { ctx: Ctx; title: string; description?: string; noi
             <details className="menu"><summary>Menu</summary>{nav}</details>
           </div>
         </header>
-        {area !== 'public' && (
-          <div className="subnav"><div className="wrap" role="navigation" aria-label="Sectiemenu">
-            {SUBNAV[area].map(([h, t]) => <a key={h} href={h} aria-current={path === h || (h !== '/bedrijf' && h !== '/beheer' && h !== '/mijn' && path.startsWith(h)) ? 'page' : undefined}>{t}</a>)}
-          </div></div>
-        )}
+        {area !== 'public' && (() => {
+          const items = SUBNAV[area];
+          const isCur = (h: string) => path === h || (h !== '/bedrijf' && h !== '/beheer' && h !== '/mijn' && path.startsWith(h));
+          const cur = items.find(([h]) => isCur(h));
+          const kicker = { company: 'Bedrijfsportaal', customer: 'Mijn PickMyRide', admin: 'Beheer' }[area];
+          const who = area === 'company' ? u?.company_name : area === 'customer' ? u?.full_name : 'PickMyRide';
+          return <>
+            <div className="portal-bar"><div className="wrap">
+              <div className="portal-id"><span>{kicker}</span><strong>{who}</strong></div>
+              {area === 'company' && u?.company_status && <span className={'portal-status ' + (u.company_status === 'actief' ? 'is-ok' : 'is-warn')}>{u.company_status === 'actief' ? 'Actief · gecontroleerd' : label(u.company_status)}</span>}
+            </div></div>
+            <div className="subnav"><div className="wrap">
+              <details className="subnav-mobile"><summary><span>{cur ? cur[1] : 'Menu'}</span></summary>
+                <nav aria-label="Sectiemenu">{items.map(([h, t]) => <a key={h} href={h} aria-current={isCur(h) ? 'page' : undefined}>{t}</a>)}</nav>
+              </details>
+              <nav className="subnav-tabs" aria-label="Sectiemenu">{items.map(([h, t]) => <a key={h} href={h} aria-current={isCur(h) ? 'page' : undefined}>{t}</a>)}</nav>
+            </div></div>
+          </>;
+        })()}
         <main id="inhoud">
           {props.hero}
           {(props.children || ctx.flash || !props.hero) && <div className={'page-body wrap' + (props.wide === false ? ' narrow' : '')}>
