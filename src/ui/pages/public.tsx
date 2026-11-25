@@ -58,7 +58,7 @@ export function QuickRequestForm({ minLeadHours, title = 'Waar gaat jouw reis na
 /** Groene balk met de vier voordelen (homepage en alle landingspagina's). */
 export const UspBar = () => (
   <section className="usp-bar" aria-label="Voordelen van PickMyRide"><div className="wrap"><ul>
-    {([['nooit-te-veel', 'Betaal nooit te veel', 'Vergelijk en kies jouw rit'], ['vaste-prijs', 'Vooraf één vaste prijs', 'Weet waar je aan toe bent'],
+    {([['nooit-te-veel', 'Vergelijk voorstellen', 'Kies zelf jouw rit'], ['vaste-prijs', 'Vooraf één vaste prijs', 'Weet waar je aan toe bent'],
       ['gecontroleerd', 'Gecontroleerde bedrijven', 'Ga met een gerust gevoel op weg'], ['gratis', 'Gratis & vrijblijvend', 'Jij kiest of je boekt']] as const).map(([i, t, d]) =>
       <li key={i}><span className="usp-icon"><img src={`/static/img/icons/${i}.svg`} alt="" width={24} height={24} /></span><span><strong>{t}</strong><span>{d}</span></span></li>)}
   </ul></div></section>
