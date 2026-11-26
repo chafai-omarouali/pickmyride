@@ -37,7 +37,7 @@ export function AdminCompaniesPage({ ctx, rows }: { ctx: Ctx; rows: any[] }) {
   );
 }
 
-export function AdminCompanyPage({ ctx, company: c, docs, areas, cats, history }: { ctx: Ctx; company: any; docs: any[]; areas: any[]; cats: any[]; history: any[] }) {
+export function AdminCompanyPage({ ctx, company: c, docs, areas, cats, history, photos = [] }: { ctx: Ctx; company: any; docs: any[]; areas: any[]; cats: any[]; history: any[]; photos?: any[] }) {
   const actions: [string, string, string][] = c.status === 'in_beoordeling' ? [['actief', 'Goedkeuren en activeren', 'btn-primary'], ['afgewezen', 'Afwijzen', 'btn-danger']]
     : c.status === 'actief' ? [['geschorst', 'Schorsen', 'btn-danger']] : c.status === 'geschorst' ? [['actief', 'Schorsing opheffen', 'btn-primary']] : [['in_beoordeling', 'Opnieuw in beoordeling nemen', 'btn-secondary']];
   return (
@@ -76,6 +76,22 @@ export function AdminCompanyPage({ ctx, company: c, docs, areas, cats, history }
                   <button className="btn btn-secondary btn-small" name="verdict" value="goedgekeurd" type="submit">Goedkeuren</button>
                   <button className="btn btn-danger btn-small" name="verdict" value="afgekeurd" type="submit">Afkeuren</button></form>
               </div>))}
+          </div>
+          <div className="card" id="fotos"><h2>Foto's</h2>
+            {!photos.length && <p>Dit bedrijf heeft nog geen foto's toegevoegd.</p>}
+            <ul className="ph-admin">{photos.map(p => (
+              <li key={p.id} className={p.hidden_by_staff ? 'is-hidden' : ''}>
+                <a href={`/bedrijfsfoto/${p.id}`} target="_blank" rel="noopener"><img src={`/bedrijfsfoto/${p.id}`} alt={p.caption || 'Bedrijfsfoto'} loading="lazy" width={p.width || 800} height={p.height || 600} /></a>
+                <div>
+                  <p className="small" style={{ margin: 0 }}>{p.caption || <span className="muted">Geen omschrijving</span>} · {formatDateTime(p.created_at)}</p>
+                  {p.hidden_by_staff && <p className="small" style={{ margin: '.2rem 0' }}><span className="badge badge-warn">Verborgen</span> {p.hidden_reason}</p>}
+                  <form method="post" action={`/beheer/fotos/${p.id}/zichtbaarheid`} className="btn-row"><Csrf ctx={ctx} />
+                    {p.hidden_by_staff
+                      ? <><input type="hidden" name="hidden" value="nee" /><button className="btn btn-secondary btn-small" type="submit">Weer tonen</button></>
+                      : <><input type="hidden" name="hidden" value="ja" /><input type="text" name="reason" placeholder="Reden (zichtbaar voor het bedrijf)" aria-label="Reden" style={{ flex: '1 1 160px', minHeight: 40 }} /><button className="btn btn-danger btn-small" type="submit">Verbergen</button></>}
+                  </form>
+                </div>
+              </li>))}</ul>
           </div>
           <div className="card"><h2>Statusgeschiedenis</h2><ol className="timeline">{history.map(h => <li key={h.id}><Status s={h.to_status} /> <span className="small muted">{formatDateTime(h.created_at)} · {h.full_name || h.actor_role}</span>{h.note && <div className="small">{h.note}</div>}</li>)}</ol></div>
         </section>

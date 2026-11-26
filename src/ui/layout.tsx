@@ -11,7 +11,7 @@ type Area = 'public' | 'customer' | 'company' | 'admin';
 const SUBNAV: Record<Exclude<Area, 'public'>, [string, string][]> = {
   customer: [['/mijn', 'Mijn aanvragen'], ['/rit-aanvragen', 'Nieuwe rit aanvragen']],
   company: [['/bedrijf', 'Overzicht'], ['/bedrijf/aanvragen', 'Aanvragen'], ['/bedrijf/biedingen', 'Mijn biedingen'], ['/bedrijf/ritten', 'Ritten & planning'],
-    ['/bedrijf/wagenpark', 'Wagenpark'], ['/bedrijf/financieel', 'Financieel'], ['/bedrijf/beoordelingen', 'Beoordelingen'], ['/bedrijf/profiel', 'Profiel']],
+    ['/bedrijf/wagenpark', 'Wagenpark'], ['/bedrijf/fotos', "Foto's"], ['/bedrijf/financieel', 'Financieel'], ['/bedrijf/beoordelingen', 'Beoordelingen'], ['/bedrijf/profiel', 'Profiel']],
   admin: [['/beheer', 'Dashboard'], ['/beheer/bedrijven', 'Taxibedrijven'], ['/beheer/aanvragen', 'Ritten & biedingen'], ['/beheer/vervangend-vervoer', 'Vervangend vervoer'], ['/beheer/beoordelingen', 'Beoordelingen'], ['/beheer/instellingen', 'Instellingen'],
     ['/beheer/audit', 'Auditlog'], ...(config.demoMode ? [['/ontwikkeling/mailbox', 'Mailbox (demo)'] as [string, string]] : [])],
 };

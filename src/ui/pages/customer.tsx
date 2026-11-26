@@ -27,11 +27,28 @@ export function MyRequestsPage({ ctx, groups }: { ctx: Ctx; groups: any[] }) {
   );
 }
 
+function OfferPhotos({ name, photos }: { name: string; photos: any[] }) {
+  const shown = 3, extra = photos.length - shown;
+  return (
+    <ul className="offer-photos" data-gallery={name} aria-label={`Foto's van ${name}`}>
+      {photos.map((p, i) => (
+        <li key={p.id} className={i >= shown ? 'op-extra' : undefined}>
+          <a href={`/bedrijfsfoto/${p.id}`} target="_blank" rel="noopener" data-gallery-item data-caption={p.caption || ''}>
+            <img src={`/bedrijfsfoto/${p.id}`} alt={p.caption || `Foto ${i + 1} van ${name}`} loading="lazy" width={p.width || 800} height={p.height || 600} />
+            {i === shown - 1 && extra > 0 && <span className="op-more" aria-hidden="true">+{extra}</span>}
+          </a>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function OfferCard({ ctx, o, leg, reserved, hidden }: { ctx: Ctx; o: any; leg: any; reserved: boolean; hidden?: boolean }) {
   return (
     <li hidden={hidden} className="offer offer-item" data-price={o.total_price_cents} data-rating={o.rating_count ? o.rating_avg : ''}>
       <div>
         <h3 style={{ marginBottom: '.2rem' }}>{o.trade_name}</h3>
+        {o.photos?.length > 0 && <OfferPhotos name={o.trade_name} photos={o.photos} />}
         <p className="small" style={{ margin: 0 }}><RatingSummary s={o} /></p>
         <ul className="facts">
           <li><strong>{o.category_name}</strong></li>

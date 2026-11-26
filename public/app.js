@@ -536,3 +536,65 @@ document.querySelectorAll('.area-company main .table-wrap table, .area-admin mai
     Array.prototype.forEach.call(tr.children, function (td, i) { if (heads[i] && !td.hasAttribute('data-label')) td.setAttribute('data-label', heads[i]); });
   });
 });
+
+// ───── Bedrijfsfoto's: vooraf verkleinen in de browser (sneller uploaden, blijft onder de limiet) ─────
+document.querySelectorAll('form[data-photo-upload]').forEach(function (form) {
+  var input = form.querySelector('input[type=file]'), list = form.querySelector('.ph-preview'), status = form.querySelector('.ph-status'), btn = form.querySelector('button[type=submit]');
+  var room = Number(form.dataset.room) || 8, MAX = 1600, busy = false;
+  if (!input || typeof DataTransfer === 'undefined' || !window.createImageBitmap) return;
+  function shrink(file) {
+    return createImageBitmap(file, { imageOrientation: 'from-image' }).then(function (bmp) {
+      var s = Math.min(1, MAX / Math.max(bmp.width, bmp.height));
+      if (s === 1 && file.type === 'image/jpeg' && file.size < 1.5 * 1024 * 1024) { bmp.close && bmp.close(); return file; }
+      var c = document.createElement('canvas'); c.width = Math.round(bmp.width * s); c.height = Math.round(bmp.height * s);
+      c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height); bmp.close && bmp.close();
+      return new Promise(function (res) { c.toBlob(function (b) { res(b ? new File([b], file.name.replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' }) : file); }, 'image/jpeg', 0.85); });
+    }).catch(function () { return file; });
+  }
+  input.addEventListener('change', function () {
+    var files = Array.prototype.slice.call(input.files || []);
+    list.innerHTML = ''; status.textContent = '';
+    if (!files.length) return;
+    if (files.length > room) { status.textContent = 'U kunt nog ' + room + (room === 1 ? ' foto' : " foto's") + ' toevoegen; de eerste ' + room + ' worden gebruikt.'; files = files.slice(0, room); }
+    busy = true; btn.disabled = true; var note = status.textContent; status.textContent = (note ? note + ' ' : '') + "Foto's worden klaargezet…";
+    Promise.all(files.map(shrink)).then(function (out) {
+      var dt = new DataTransfer(); out.forEach(function (f) { dt.items.add(f); }); input.files = dt.files;
+      out.forEach(function (f) { var li = document.createElement('li'); var img = document.createElement('img'); img.alt = ''; img.src = URL.createObjectURL(f); li.appendChild(img); list.appendChild(li); });
+      var total = out.reduce(function (n, f) { return n + f.size; }, 0);
+      status.textContent = (note ? note + ' ' : '') + out.length + (out.length === 1 ? ' foto' : " foto's") + ' klaar om te uploaden (' + Math.round(total / 1024) + ' kB).';
+      if (total > 4 * 1024 * 1024) status.textContent += ' Dat is te veel in één keer: kies minder foto\'s per keer.';
+      btn.disabled = total > 4 * 1024 * 1024; busy = false;
+    });
+  });
+  form.addEventListener('submit', function (ev) { if (busy) { ev.preventDefault(); return; } btn.disabled = true; btn.textContent = 'Bezig met uploaden…'; });
+});
+
+// ───── Foto's bij een aanbod groot bekijken ─────
+(function () {
+  var galleries = document.querySelectorAll('[data-gallery]');
+  if (!galleries.length || typeof HTMLDialogElement === 'undefined') return;
+  var dlg = document.createElement('dialog'); dlg.className = 'pmr-gallery'; dlg.setAttribute('aria-labelledby', 'pg-title');
+  dlg.innerHTML = '<header><h2 id="pg-title"></h2><button type="button" class="pg-close" aria-label="Sluiten">×</button></header>' +
+    '<figure><img alt=""><figcaption></figcaption></figure>' +
+    '<footer><button type="button" class="pg-prev">Vorige</button><span class="pg-count" aria-live="polite"></span><button type="button" class="pg-next">Volgende</button></footer>';
+  document.body.appendChild(dlg);
+  var items = [], idx = 0, img = dlg.querySelector('img'), cap = dlg.querySelector('figcaption'), count = dlg.querySelector('.pg-count');
+  function show(i) {
+    idx = (i + items.length) % items.length; var a = items[idx];
+    img.src = a.getAttribute('href'); img.alt = a.querySelector('img').alt; cap.textContent = a.dataset.caption || ''; cap.hidden = !a.dataset.caption;
+    count.textContent = (idx + 1) + ' van ' + items.length;
+    dlg.querySelector('.pg-prev').hidden = dlg.querySelector('.pg-next').hidden = items.length < 2;
+  }
+  galleries.forEach(function (g) {
+    g.addEventListener('click', function (ev) {
+      var a = ev.target.closest('[data-gallery-item]'); if (!a) return; ev.preventDefault();
+      items = Array.prototype.slice.call(g.querySelectorAll('[data-gallery-item]'));
+      dlg.querySelector('#pg-title').textContent = g.dataset.gallery; show(items.indexOf(a)); dlg.showModal();
+    });
+  });
+  dlg.querySelector('.pg-close').addEventListener('click', function () { dlg.close(); });
+  dlg.querySelector('.pg-prev').addEventListener('click', function () { show(idx - 1); });
+  dlg.querySelector('.pg-next').addEventListener('click', function () { show(idx + 1); });
+  dlg.addEventListener('keydown', function (e) { if (e.key === 'ArrowLeft') show(idx - 1); if (e.key === 'ArrowRight') show(idx + 1); });
+  dlg.addEventListener('click', function (e) { if (e.target === dlg) dlg.close(); });
+})();

@@ -6,6 +6,29 @@
 import { createPool } from '../src/lib/pg.ts';
 import { hashPassword } from '../src/lib/security.ts';
 import { calculateCommission } from '../src/lib/money.ts';
+import fs from 'node:fs';
+import { sniffImage, imageSize } from '../src/domain/photos.ts';
+
+// Demofoto's per demobedrijf (alleen als het bedrijf nog geen foto's heeft). Fictieve sfeerbeelden.
+const DEMO_PHOTOS: Record<string, [string, string][]> = {
+  'noord@demo.pickmyride.test': [['onderwerp-taxibus-hero', 'Taxibus voor groepen tot 8 personen'], ['onderwerp-taxibus-extra', 'Ruime bagageruimte'], ['onderweg', 'Interieur met lederen stoelen'], ['lange-rit', 'Sedan voor lange ritten']],
+  'airport@demo.pickmyride.test': [['luchthaven', 'Ophalen bij de luchthaven'], ['onderwerp-reserveren-hero', 'Sedan, voorgereden aan de deur'], ['onderwerp-kost-hero', 'Stationwagen']],
+};
+async function seedDemoPhotos(q: (sql: string, p?: unknown[]) => Promise<any[]>) {
+  const dir = new URL('../public/img/foto/', import.meta.url);
+  for (const [email, list] of Object.entries(DEMO_PHOTOS)) {
+    const co = (await q(`select c.id, (select count(*)::int from company_photos p where p.company_id = c.id) as n from companies c where c.email = $1 and c.is_demo`, [email]))[0];
+    if (!co || co.n > 0) continue;
+    for (const [i, [file, caption]] of list.entries()) {
+      const path = new URL(file + '.webp', dir);
+      if (!fs.existsSync(path)) continue;
+      const data = fs.readFileSync(path); const mime = sniffImage(data); if (!mime) continue;
+      const size = imageSize(data, mime);
+      await q(`insert into company_photos (company_id, data, mime_type, size_bytes, width, height, caption, sort_order) values ($1, decode($2,'base64'), $3, $4, $5, $6, $7, $8)`,
+        [co.id, data.toString('base64'), mime, data.length, size?.w ?? null, size?.h ?? null, caption, i]);
+    }
+  }
+}
 
 export const DEMO_PASSWORD = 'Demo-wachtwoord-2026';
 const H = 3600_000, D = 24 * H;
@@ -23,7 +46,7 @@ export async function seedDemo(url = process.env.MIGRATION_DATABASE_URL || 'post
     await q('begin');
     await q('set search_path = pickmyride, public');
     await q(`select set_config('app.role','system',true)`);
-    if (await one(`select 1 from users where email = 'beheer@demo.pickmyride.test'`)) { await q('rollback'); if (!quiet) console.log('Demodata is al aanwezig.'); return; }
+    if (await one(`select 1 from users where email = 'beheer@demo.pickmyride.test'`)) { await seedDemoPhotos(q); await q('commit'); if (!quiet) console.log('Demodata is al aanwezig (demofoto\'s aangevuld).'); return; }
 
     const user = async (email: string, role: string, name: string, phone: string) =>
       (await one(`insert into users (email, password_hash, role, full_name, phone, email_verified_at, is_demo) values ($1,$2,$3,$4,$5, now(), true) returning id`, [email, pw, role, name, phone])).id;
@@ -146,6 +169,7 @@ export async function seedDemo(url = process.env.MIGRATION_DATABASE_URL || 'post
     const g6 = await group(k2, 'enkel');
     await ride({ group: g6, leg: 'heen', status: 'verlopen', pickup: at(-1 * D), from: ADAM, to: HLM, pax: 1, bags: 0, contact: K2, closes: at(-1 * D - 6 * H) });
 
+    await seedDemoPhotos(q);
     await q('commit');
     if (!quiet) console.log(`Demodata geladen. Wachtwoord voor alle demo-accounts: ${DEMO_PASSWORD}\n  beheer@demo.pickmyride.test (beheerder)\n  noord@demo.pickmyride.test, airport@demo.pickmyride.test (actieve bedrijven)\n  utrecht@demo.pickmyride.test (in beoordeling)\n  klant.een@demo.pickmyride.test, klant.twee@demo.pickmyride.test (klanten)`);
   } catch (e) { await q('rollback'); throw e; } finally { c.release(); await pool.end(); }

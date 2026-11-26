@@ -156,6 +156,7 @@ export function CompanyDashboardPage({ ctx, available, bids, bookings, unread = 
             <li>Doe één totaalprijs, inclusief alle vaste kosten.</li>
             <li>Kiest de klant jouw voorstel, dan krijg je naam en adres en plan je de rit.</li></ol></div>
           <div className="pd-links"><h3>Snel naar</h3><ul>
+            <li><a href="/bedrijf/fotos">Foto's van uw bedrijf</a></li>
             <li><a href="/bedrijf/wagenpark">Chauffeur of voertuig toevoegen</a></li>
             <li><a href="/bedrijf/profiel">Bedrijfsgegevens en documenten</a></li>
             <li><a href="/bedrijf/meldingen">Meldingsinstellingen</a></li>
@@ -447,4 +448,71 @@ function placeShort(r: any, side: 'pickup' | 'dropoff') {
 }
 function placeLong(r: any, side: 'pickup' | 'dropoff') {
   return r[`${side}_country`] && r[`${side}_country`] !== 'NL' ? `${r[`${side}_city`]}, ${countryName(r[`${side}_country`])}` : `${r[`${side}_city`]}, postcodegebied ${r[`${side}_postcode4`]}`;
+}
+
+export function CompanyPhotosPage({ ctx, photos, company }: { ctx: Ctx; photos: any[]; company: any }) {
+  const room = 8 - photos.length;
+  return (
+    <Page ctx={ctx} title="Foto's" area="company">
+      <div className="pd-head">
+        <div>
+          <h1>Foto's</h1>
+          <p className="lead">Klanten zien deze foto's bij uw aanbod. Laat zien met welke auto's u rijdt en hoe ze er van binnen uitzien.</p>
+        </div>
+      </div>
+      {company?.status !== 'actief' && <Notice type="info"><p>Uw foto's worden zichtbaar voor klanten zodra uw bedrijf is goedgekeurd.</p></Notice>}
+
+      <div className="ph-layout">
+        <section className="card ph-upload">
+          <h2>Foto's toevoegen</h2>
+          <p className="small muted">{photos.length} van 8 foto's gebruikt.</p>
+          {room > 0 ? (
+            <form method="post" action="/bedrijf/fotos" encType="multipart/form-data" data-photo-upload data-room={room}>
+              <Csrf ctx={ctx} />
+              <label className="ph-drop" htmlFor="ph-files">
+                <strong>Kies foto's</strong>
+                <span>JPG, PNG of WebP · nog {room === 1 ? '1 foto' : `${room} foto's`}</span>
+                <input id="ph-files" type="file" name="photos" accept="image/jpeg,image/png,image/webp" multiple required />
+              </label>
+              <ul className="ph-preview" aria-live="polite" />
+              <p className="ph-status small" aria-live="polite" />
+              <button className="btn btn-primary" type="submit">Foto's uploaden</button>
+            </form>
+          ) : <p>U heeft het maximum van 8 foto's bereikt. Verwijder een foto om een nieuwe toe te voegen.</p>}
+          <h3>Waar letten we op</h3>
+          <ul className="ph-rules">
+            <li>Eigen foto's van uw voertuigen, interieur of bedrijf.</li>
+            <li>Geen herkenbare personen zonder hun toestemming.</li>
+            <li>Geen leesbare kentekens, telefoonnummers of websites.</li>
+            <li>Geen prijzen, kortingen, keurmerken of beloftes in de foto.</li>
+          </ul>
+          <p className="small muted">PickMyRide kan foto's die hier niet aan voldoen verbergen.</p>
+        </section>
+
+        <section className="ph-list" aria-labelledby="ph-list-h">
+          <h2 id="ph-list-h">Uw foto's</h2>
+          {!photos.length && <div className="card ph-empty"><p>Nog geen foto's. Begin met een foto van de buitenkant van uw meest gebruikte auto; die ziet de klant als eerste.</p></div>}
+          <ol className="ph-grid">{photos.map((p, i) => (
+            <li key={p.id} className={`card ph-item${p.hidden_by_staff ? ' is-hidden' : ''}`}>
+              <div className="ph-img">
+                <img src={`/bedrijfsfoto/${p.id}`} alt={p.caption || `Foto ${i + 1}`} loading="lazy" width={p.width || 800} height={p.height || 600} />
+                {i === 0 && <span className="badge ph-first">Eerste foto</span>}
+              </div>
+              {p.hidden_by_staff && <p className="ph-hidden small"><strong>Verborgen door PickMyRide.</strong> {p.hidden_reason || 'Neem contact op voor meer uitleg.'}</p>}
+              <form method="post" action={`/bedrijf/fotos/${p.id}/bijschrift`} className="ph-caption">
+                <Csrf ctx={ctx} />
+                <label className="sr" htmlFor={`cap-${p.id}`}>Omschrijving</label>
+                <input id={`cap-${p.id}`} name="caption" maxLength={120} defaultValue={p.caption || ''} placeholder="Omschrijving, bijv. Interieur taxibus" />
+                <button className="btn btn-secondary btn-sm" type="submit">Opslaan</button>
+              </form>
+              <div className="ph-actions">
+                {i > 0 && <form method="post" action={`/bedrijf/fotos/${p.id}/eerste`}><Csrf ctx={ctx} /><button className="link-btn" type="submit">Vooraan zetten</button></form>}
+                <form method="post" action={`/bedrijf/fotos/${p.id}/verwijderen`} data-confirm="Deze foto verwijderen?"><Csrf ctx={ctx} /><button className="link-btn danger" type="submit">Verwijderen</button></form>
+              </div>
+            </li>
+          ))}</ol>
+        </section>
+      </div>
+    </Page>
+  );
 }

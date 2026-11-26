@@ -1,4 +1,5 @@
 import { type Actor, type Tx, SYSTEM, withActor, one, many } from '../lib/db.ts';
+import { publicPhotosFor } from './photos.ts';
 import { amsterdamToUtc, formatDateTime, hours } from '../lib/time.ts';
 import { getSettings, recordStatus, audit, type Settings } from '../lib/services.ts';
 import { queueEmail } from '../lib/notify.ts';
@@ -254,12 +255,14 @@ export async function getCustomerGroup(actor: Actor, groupId: string) {
       from ride_requests r join ride_request_private p on p.ride_request_id = r.id join ride_request_contact cc on cc.ride_request_id = r.id join vehicle_categories vc on vc.code = r.vehicle_category
       where r.group_id = $1 order by r.leg`, [groupId]);
     for (const l of legs) {
-      l.offers = await many(tx, `select b.id, b.status, b.total_price_cents, b.vehicle_category, vc.name_nl as category_name, b.max_passengers, b.max_large_bags,
+      l.offers = await many(tx, `select b.id, b.company_id, b.status, b.total_price_cents, b.vehicle_category, vc.name_nl as category_name, b.max_passengers, b.max_large_bags,
           b.included_services, b.included_wait_minutes, b.flight_delay_policy, b.cancellation_policy, b.valid_until, b.note,
           cp.trade_name, cp.rating_avg, cp.rating_count, cp.avg_communicatie, cp.avg_klantvriendelijkheid, cp.avg_comfort_hygiene, cp.avg_betrouwbaarheid, cp.avg_rijgedrag_veiligheid
         from bids b join company_public cp on cp.id = b.company_id join vehicle_categories vc on vc.code = b.vehicle_category
         where b.ride_request_id = $1 and ((b.status = 'actief' and b.valid_until > now()) or b.status in ('gereserveerd','geaccepteerd'))
         order by b.total_price_cents, b.created_at`, [l.id]);
+      const photos = await publicPhotosFor(tx, l.offers.map((o: any) => o.company_id));
+      for (const o of l.offers) o.photos = photos[o.company_id] || [];
       l.reservation = await one(tx, `select r.id, r.bid_id, r.expires_at, p.id as payment_id, p.checkout_url from reservations r
         left join payments p on p.reservation_id = r.id where r.ride_request_id = $1 and r.status = 'actief' and r.expires_at > now()`, [l.id]);
       l.booking = await one(tx, `select k.id, k.booking_number, k.status, k.total_price_cents, cp.trade_name from bookings k join company_public cp on cp.id = k.company_id where k.ride_request_id = $1`, [l.id]);

@@ -166,6 +166,30 @@ describe('Acceptatiecriteria', () => {
     assert.equal((all.text.match(/<li hidden=""/g) || []).length, 0);
   });
 
+  it('AC5b: een bedrijf kan foto\'s toevoegen; klanten zien ze bij het aanbod, beheer kan ze verbergen', async () => {
+    const fs = await import('node:fs');
+    const img = fs.readFileSync(new URL('../public/img/foto/lange-rit.webp', import.meta.url));
+    const bad = await S.B.postMultipart('/bedrijf/fotos', {}, [{ field: 'photos', name: 'nep.jpg', type: 'image/jpeg', data: Buffer.from('MZ-geen-afbeelding') }]);
+    assert.equal(bad.status, 303);
+    assert.equal((await ownerQuery(`select count(*)::int n from company_photos where company_id = $1`, [S.companies.B]))[0].n, 0, 'geen afbeelding = niet opgeslagen');
+    const up = await S.B.postMultipart('/bedrijf/fotos', {}, [{ field: 'photos', name: 'auto.webp', type: 'image/webp', data: img }]);
+    assert.equal(up.status, 303);
+    const [ph] = await ownerQuery(`select id, mime_type, width, height, hidden_by_staff from company_photos where company_id = $1`, [S.companies.B]);
+    assert.equal(ph.mime_type, 'image/webp'); assert.ok(ph.width >= 400 && ph.height >= 300);
+    assert.match((await S.klant1.get(`/mijn/aanvragen/${S.group1}?alle=1`)).text, new RegExp(`/bedrijfsfoto/${ph.id}`), 'klant ziet de foto bij het aanbod');
+    const pub = await new Browser(base).get(`/bedrijfsfoto/${ph.id}`);
+    assert.equal(pub.status, 200);
+    assert.equal((await S.C.post(`/bedrijf/fotos/${ph.id}/verwijderen`, {})).status, 404, 'ander bedrijf kan de foto niet verwijderen');
+    assert.equal((await S.admin.post(`/beheer/fotos/${ph.id}/zichtbaarheid`, { hidden: 'ja', reason: 'Kenteken leesbaar' })).status, 303);
+    assert.equal((await new Browser(base).get(`/bedrijfsfoto/${ph.id}`)).status, 404, 'verborgen foto is niet meer publiek');
+    assert.doesNotMatch((await S.klant1.get(`/mijn/aanvragen/${S.group1}?alle=1`)).text, new RegExp(ph.id));
+    assert.match((await S.B.get('/bedrijf/fotos')).text, /Kenteken leesbaar/, 'bedrijf ziet waarom de foto verborgen is');
+    const { withActor } = await import('../src/lib/db.ts');
+    await assert.rejects(withActor({ userId: null, role: 'company', companyId: S.companies.B }, tx => tx.query(`update company_photos set hidden_by_staff = false where id = $1`, [ph.id])), 'bedrijf kan verbergen niet zelf ongedaan maken');
+    assert.equal((await S.B.post(`/bedrijf/fotos/${ph.id}/verwijderen`, {})).status, 303);
+    assert.equal((await ownerQuery(`select count(*)::int n from company_photos where company_id = $1`, [S.companies.B]))[0].n, 0);
+  });
+
   it('AC6: een geldig aanbod kan tijdelijk gereserveerd worden', async () => {
     const r = await S.klant1.post(`/mijn/aanbod/${S.bidA}/kiezen`, {});
     assert.equal(r.status, 303); assert.match(r.location!, /^\/demo-betaalomgeving\/demo_tr_/);

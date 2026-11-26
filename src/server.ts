@@ -24,6 +24,7 @@ import * as A from './domain/admin.ts';
 import * as V from './domain/reviews.ts';
 import * as M from './domain/communication.ts';
 import * as VV from './domain/replacement.ts';
+import * as F from './domain/photos.ts';
 import * as PubP from './ui/pages/public.tsx';
 import * as ReqP from './ui/pages/request.tsx';
 import * as CusP from './ui/pages/customer.tsx';
@@ -362,6 +363,22 @@ r.post('/bedrijf/wagenpark/voertuig', async ctx => { requireRole(ctx, 'company')
 r.get('/bedrijf/financieel', async ctx => { requireRole(ctx, 'company'); priv(ctx, ComP.FinancePage, { rows: await K.listCompanyBookings(ctx.actor) }); });
 r.get('/bedrijf/beoordelingen', async ctx => { requireRole(ctx, 'company'); priv(ctx, ComP.CompanyReviewsPage, await V.companyReviews(ctx.actor)); });
 r.get('/bedrijf/profiel', async ctx => { requireRole(ctx, 'company'); priv(ctx, ComP.ProfilePage, await C.getOwnCompany(ctx.actor)); });
+r.get('/bedrijf/fotos', async ctx => { requireRole(ctx, 'company'); priv(ctx, ComP.CompanyPhotosPage, await F.listOwnPhotos(ctx.actor)); });
+r.post('/bedrijf/fotos', async ctx => {
+  requireRole(ctx, 'company');
+  const res = await F.addPhotos(ctx.actor, ctx.files);
+  if (res.added) ctx.setFlash(res.errors.length ? 'info' : 'ok', `${res.added === 1 ? '1 foto toegevoegd' : `${res.added} foto's toegevoegd`}.${res.errors.length ? ' ' + res.errors.join(' ') : ''}`);
+  else ctx.setFlash('fout', res.errors.join(' '));
+  redirect(ctx, '/bedrijf/fotos');
+});
+r.post('/bedrijf/fotos/:id/bijschrift', async ctx => { requireRole(ctx, 'company'); await F.updatePhotoCaption(ctx.actor, uuid(ctx.params.id), String(ctx.body.caption || '')); ctx.setFlash('ok', 'Omschrijving opgeslagen.'); redirect(ctx, '/bedrijf/fotos'); });
+r.post('/bedrijf/fotos/:id/eerste', async ctx => { requireRole(ctx, 'company'); await F.makePhotoFirst(ctx.actor, uuid(ctx.params.id)); ctx.setFlash('ok', 'Deze foto staat nu vooraan.'); redirect(ctx, '/bedrijf/fotos'); });
+r.post('/bedrijf/fotos/:id/verwijderen', async ctx => { requireRole(ctx, 'company'); await F.deletePhoto(ctx.actor, uuid(ctx.params.id)); ctx.setFlash('ok', 'Foto verwijderd.'); redirect(ctx, '/bedrijf/fotos'); });
+r.get('/bedrijfsfoto/:id', async ctx => {
+  const p = await F.readPhoto(ctx.user ? ctx.actor : null, uuid(ctx.params.id));
+  ctx.res.writeHead(200, { 'Content-Type': p.mime, 'Cache-Control': p.isPublic ? 'public, max-age=3600' : 'private, no-store', 'X-Content-Type-Options': 'nosniff', 'X-Robots-Tag': 'noindex' });
+  ctx.res.end(ctx.method === 'HEAD' ? undefined : p.data);
+});
 r.get('/bedrijf/meldingen', async ctx => { requireRole(ctx, 'company'); priv(ctx, ComP.CompanyPlaceholderPage, { title: 'Meldingsinstellingen', what: 'Zelf instellen welke e-mails u ontvangt' }); });
 r.get('/bedrijf/ondersteuning', async ctx => { requireRole(ctx, 'company'); priv(ctx, ComP.CompanyPlaceholderPage, { title: 'Ondersteuning', what: 'Een ondersteuningsverzoek indienen vanuit het portaal' }); });
 r.get('/documenten/:id', async ctx => {
@@ -374,7 +391,7 @@ r.get('/documenten/:id', async ctx => {
 // ───────── Beheer ─────────
 r.get('/beheer', async ctx => { requireRole(ctx, 'admin'); priv(ctx, AdmP.AdminDashboardPage, { k: await A.dashboardCounts(ctx.actor) }); });
 r.get('/beheer/bedrijven', async ctx => { requireRole(ctx, 'admin'); priv(ctx, AdmP.AdminCompaniesPage, { rows: await C.listCompanies(ctx.actor) }); });
-r.get('/beheer/bedrijven/:id', async ctx => { requireRole(ctx, 'admin'); priv(ctx, AdmP.AdminCompanyPage, await C.getCompanyAdmin(ctx.actor, uuid(ctx.params.id))); });
+r.get('/beheer/bedrijven/:id', async ctx => { requireRole(ctx, 'admin'); const id = uuid(ctx.params.id); priv(ctx, AdmP.AdminCompanyPage, { ...(await C.getCompanyAdmin(ctx.actor, id)), photos: await F.listCompanyPhotosAdmin(ctx.actor, id) }); });
 r.post('/beheer/bedrijven/:id/status', async ctx => {
   requireRole(ctx, 'admin'); const id = uuid(ctx.params.id);
   await C.setCompanyStatus(ctx.actor, id, ctx.body.to as any, ctx.body.note || '');
@@ -384,6 +401,11 @@ r.post('/beheer/bedrijven/:id/buitenland', async ctx => {
   requireRole(ctx, 'admin'); const id = uuid(ctx.params.id);
   await C.setServesAbroad(ctx.actor, id, ctx.body.on === 'ja');
   ctx.setFlash('ok', 'Instelling buitenland opgeslagen en vastgelegd in het auditlog.'); redirect(ctx, `/beheer/bedrijven/${id}`);
+});
+r.post('/beheer/fotos/:id/zichtbaarheid', async ctx => {
+  requireRole(ctx, 'admin');
+  const companyId = await F.setPhotoHidden(ctx.actor, uuid(ctx.params.id), ctx.body.hidden === 'ja', String(ctx.body.reason || ''));
+  ctx.setFlash('ok', ctx.body.hidden === 'ja' ? 'Foto verborgen voor klanten.' : 'Foto is weer zichtbaar voor klanten.'); redirect(ctx, `/beheer/bedrijven/${companyId}#fotos`);
 });
 r.post('/beheer/documenten/:id/controle', async ctx => {
   requireRole(ctx, 'admin');
@@ -454,7 +476,7 @@ export async function handle(req: http.IncomingMessage, res: http.ServerResponse
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('Permissions-Policy', 'geolocation=(), camera=(), microphone=()');
-  res.setHeader('Content-Security-Policy', `default-src 'self'; script-src 'self' 'sha256-${INLINE_JS_HASH}'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'self'`);
+  res.setHeader('Content-Security-Policy', `default-src 'self'; script-src 'self' 'sha256-${INLINE_JS_HASH}'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'self'`);
   if (config.secureCookies) res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
 
   if (url.pathname.startsWith('/static/')) {
